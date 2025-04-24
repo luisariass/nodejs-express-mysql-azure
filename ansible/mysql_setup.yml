@@ -1,0 +1,90 @@
+---
+- hosts: all
+  become: yes
+  vars:
+    mysql_root_password: "{{ lookup('env', 'MYSQL_ROOT_PASSWORD') }}"
+    mysql_db: testdb
+    mysql_user: dbuser
+    mysql_password: "{{ lookup('env', 'MYSQL_DB_PASSWORD') }}"
+    app_subnet_cidr: "10.0.2.0/24"  # Esto se pasará como variable externa
+
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: Install required packages
+      apt:
+        name: 
+          - mysql-server
+          - python3-pip
+          - python3-mysqldb
+        state: present
+
+    - name: Start and enable MySQL service
+      systemd:
+        name: mysql
+        state: started
+        enabled: yes
+
+    - name: Set MySQL root password
+      mysql_user:
+        name: root
+        password: "{{ mysql_root_password }}"
+        login_unix_socket: /var/run/mysqld/mysqld.sock
+        state: present
+
+    - name: Create database
+      mysql_db:
+        name: "{{ mysql_db }}"
+        state: present
+        login_unix_socket: /var/run/mysqld/mysqld.sock
+
+    - name: Create database user
+      mysql_user:
+        name: "{{ mysql_user }}"
+        password: "{{ mysql_password }}"
+        priv: "{{ mysql_db }}.*:ALL"
+        host: '%'
+        state: present
+        login_unix_socket: /var/run/mysqld/mysqld.sock
+
+    - name: Configure MySQL to listen on all interfaces
+      lineinfile:
+        path: /etc/mysql/mysql.conf.d/mysqld.cnf
+        regexp: '^bind-address'
+        line: 'bind-address = 0.0.0.0'
+        backup: yes
+
+    - name: Configure MySQL firewall to allow only App Service subnet
+      blockinfile:
+        path: /etc/mysql/mysql.conf.d/mysqld.cnf
+        block: |
+          # Allow connections only from App Service subnet
+          [mysqld]
+          bind-address = 0.0.0.0
+          
+    - name: Set up UFW firewall
+      ufw:
+        rule: allow
+        port: 22
+        proto: tcp
+        src: "{{ controller_ip }}"  # IP de la máquina controladora
+
+    - name: Allow MySQL from App Service subnet
+      ufw:
+        rule: allow
+        port: 3306
+        proto: tcp
+        src: "{{ app_subnet_cidr }}"
+
+    - name: Enable UFW
+      ufw:
+        state: enabled
+        policy: deny
+
+    - name: Restart MySQL
+      systemd:
+        name: mysql
+        state: restarted

@@ -1,0 +1,22 @@
+# Terraform
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+*.tfvars
+.terraformrc
+terraform.rc
+
+# SSH keys
+**/.ssh/*
+**/*.pem
+**/*.key
+
+# Logs
+*.log
+
+# Environment variables
+.env
+
+# Node.js
+node_modules/
+npm-debug.log
