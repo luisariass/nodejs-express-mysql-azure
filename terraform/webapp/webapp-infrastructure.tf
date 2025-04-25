@@ -47,7 +47,7 @@ resource "azurerm_service_plan" "app_plan" {
   location            = azurerm_resource_group.app_rg.location
   resource_group_name = azurerm_resource_group.app_rg.name
   os_type             = "Linux"
-  sku_name            = "F1"  # Basic tier, puedes cambiar a P1V2 para producción
+  sku_name            = "B1"  # Basic tier, puedes cambiar a P1V2 para producción
 }
 
 # Generar sufijo aleatorio para el nombre único del App Service
@@ -68,7 +68,7 @@ resource "azurerm_linux_web_app" "app" {
     application_stack {
       node_version = "16-lts"
     }
-    always_on          = false
+    always_on          = true
     http2_enabled      = true
     minimum_tls_version = "1.2"
     ftps_state         = "Disabled"
@@ -85,7 +85,7 @@ resource "azurerm_linux_web_app" "app" {
   https_only = true
   
   # VNet Integration - conectar App Service con el subnet
-  virtual_network_subnet_id = azurerm_subnet.app_subnet.id
+  virtual_network_subnet_id = data.azurerm_subnet.app_subnet.id
 }
 
 # Outputs
