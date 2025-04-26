@@ -80,6 +80,7 @@ resource "azurerm_linux_web_app" "app" {
     "DB_PASSWORD" = var.db_password
     "DB_NAME"     = var.db_name
     "PORT"        = "8080"
+    "WEBSITES_PORT" = "8080"
   }
 
   https_only = true
